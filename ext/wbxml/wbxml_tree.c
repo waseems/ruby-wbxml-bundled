@@ -1,7 +1,7 @@
 /*
  * libwbxml, the WBXML Library.
  * Copyright (C) 2002-2008 Aymerick Jehanne <aymerick@jehanne.org>
- * Copyright (C) 2008-2010 Michael Bell <michael.bell@opensync.org>
+ * Copyright (C) 2008-2011 Michael Bell <michael.bell@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -34,15 +34,23 @@
  */
 
 #include "wbxml_config_internals.h"
-#include "wbxml.h"
-
-#define WBXML_NAMESPACE_SEPARATOR ':'
+#include "wbxml_tree.h"
+#include "wbxml_log.h"
+#include "wbxml_parser.h"
+#include "wbxml_encoder.h"
+#include "wbxml_tree_clb_xml.h"
+#include "wbxml_tree_clb_wbxml.h"
+#include "wbxml_internals.h"
 
 /***************************************************
  *    Public Functions
  */
 
-WBXML_DECLARE(WBXMLError) wbxml_tree_from_wbxml(WB_UTINY *wbxml, WB_ULONG wbxml_len, WBXMLLanguage lang, WBXMLTree **tree)
+WBXML_DECLARE(WBXMLError) wbxml_tree_from_wbxml(WB_UTINY *wbxml,
+                                                WB_ULONG wbxml_len,
+                                                WBXMLLanguage lang,
+                                                WBXMLCharsetMIBEnum charset,
+                                                WBXMLTree **tree)
 {
     WBXMLParser *wbxml_parser = NULL;
     WB_LONG error_index = 0;
@@ -84,7 +92,9 @@ WBXML_DECLARE(WBXMLError) wbxml_tree_from_wbxml(WB_UTINY *wbxml, WB_ULONG wbxml_
     if (lang != WBXML_LANG_UNKNOWN)
         wbxml_parser_set_language(wbxml_parser, lang);
 
-    /** @todo Use wbxml_parser_set_meta_charset() */
+    /* Give the user the possibility to force the document character set */
+    if (charset != WBXML_CHARSET_UNKNOWN)
+        wbxml_parser_set_meta_charset(wbxml_parser, charset);
 
     /* Parse the WBXML document to WBXML Tree */
     ret = wbxml_parser_parse(wbxml_parser, wbxml, wbxml_len);
@@ -1013,12 +1023,14 @@ WBXML_DECLARE(WB_BOOL) wbxml_tree_add_node(WBXMLTree *tree, WBXMLTreeNode *paren
              */
             while (tmp->next != NULL)
                 tmp = tmp->next;
-            
+
 	    if (node->type == WBXML_TREE_TEXT_NODE &&
                 tmp->type == WBXML_TREE_TEXT_NODE) {
+
                 /* join the two text nodes and replace the present text node */
-                if (!wbxml_buffer_insert(node->content, tmp->content, 0))
+                if (!wbxml_buffer_append(tmp->content, node->content))
                     return FALSE;
+
 		if (tmp->prev == NULL) {
                     /* tmp is first child */
                     parent->children = node;
@@ -1027,6 +1039,10 @@ WBXML_DECLARE(WB_BOOL) wbxml_tree_add_node(WBXMLTree *tree, WBXMLTreeNode *paren
                     tmp->prev->next = node;
                     node->prev = tmp->prev;
                 }
+
+                wbxml_buffer_destroy(node->content);
+                node->content = tmp->content;
+                tmp->content = NULL;
                 wbxml_tree_node_destroy(tmp);
             } else {
                 /* normal situation => append node */
@@ -1074,19 +1090,16 @@ WBXML_DECLARE(WBXMLError) wbxml_tree_extract_node(WBXMLTree *tree,
         tree->root = node->next;
     }
 
-    /* Next link */
-    if (node->next != NULL) {
-        /* Link next node to previous node */
+    /* Link next node to previous node */
+    if (node->next != NULL)
         node->next->prev = node->prev;
-        node->next = NULL;
-    }
 
-    /* Previous link */
-    if (node->prev != NULL) {
-        /* Link previous node to next node */
+    /* Link previous node to next node */
+    if (node->prev != NULL)
         node->prev->next = node->next;
-        node->prev = NULL;
-    }
+
+    /* Cleanup pointers */
+    node->next = node->prev = NULL;
 
     return WBXML_OK;
 }
@@ -1157,7 +1170,7 @@ WBXML_DECLARE(WBXMLTreeNode *) wbxml_tree_add_xml_elt(WBXMLTree *tree,
     WBXMLTag *tag = NULL;
     WB_UTINY *sep = NULL;
     const WB_UTINY *namespace_name = NULL;
-    const WB_UTINY *element_name = NULL;
+    WB_UTINY *element_name = NULL;
 
     /* Separate the namespace from the element name */
     sep = (WB_UTINY *)strrchr((const WB_TINY *) name, WBXML_NAMESPACE_SEPARATOR);
@@ -1188,7 +1201,7 @@ WBXML_DECLARE(WBXMLTreeNode *) wbxml_tree_add_xml_elt(WBXMLTree *tree,
     }
     else {
         /* Not found : literal tag */
-        tag = wbxml_tag_create_literal(name);
+        tag = wbxml_tag_create_literal(element_name);
     }
 
     if (sep != NULL) {

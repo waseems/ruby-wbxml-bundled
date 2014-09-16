@@ -1,6 +1,7 @@
 /*
  * libwbxml, the WBXML Library.
  * Copyright (C) 2002-2008 Aymerick Jehanne <aymerick@jehanne.org>
+ * Copyright (C) 2011 Michael Bell <michael.bell@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -32,7 +33,8 @@
  * @brief WBXML Tree Callbacks for WBXML Parser
  */
 
-#include "wbxml.h"
+#include "wbxml_tree_clb_wbxml.h"
+#include "wbxml_tree.h"
 
 
 /***************************************************
@@ -64,6 +66,8 @@ void wbxml_tree_clb_wbxml_start_element(void *ctx, WBXMLTag *element, WBXMLAttri
 {
     WBXMLTreeClbCtx *tree_ctx = (WBXMLTreeClbCtx *) ctx;
 
+    (void) empty; /* avoid warning about unused parameter */
+
     if (tree_ctx->error != WBXML_OK)
         return;
 
@@ -81,6 +85,8 @@ void wbxml_tree_clb_wbxml_start_element(void *ctx, WBXMLTag *element, WBXMLAttri
 void wbxml_tree_clb_wbxml_end_element(void *ctx, WBXMLTag *element, WB_BOOL empty)
 {
     WBXMLTreeClbCtx *tree_ctx = (WBXMLTreeClbCtx *) ctx;
+
+    (void) empty; /* avoid warning about unused parameter */
 
     if (tree_ctx->error != WBXML_OK)
         return;
@@ -127,7 +133,7 @@ void wbxml_tree_clb_wbxml_characters(void *ctx, WB_UTINY *ch, WB_ULONG start, WB
     switch (wbxml_tree_node_get_syncml_data_type(tree_ctx->current)) {
     case WBXML_SYNCML_DATA_TYPE_WBXML:
         /* Deal with Embedded SyncML Documents - Parse WBXML */
-        if (wbxml_tree_from_wbxml(ch + start, length, WBXML_LANG_UNKNOWN, &tmp_tree) != WBXML_OK) {
+        if (wbxml_tree_from_wbxml(ch + start, length, WBXML_LANG_UNKNOWN, tree_ctx->tree->orig_charset, &tmp_tree) != WBXML_OK) {
             /* Not parsable ? Just add it as a Text Node... */
             goto text_node;
         }

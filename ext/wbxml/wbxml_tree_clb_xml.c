@@ -1,7 +1,7 @@
 /*
  * libwbxml, the WBXML Library.
  * Copyright (C) 2002-2008 Aymerick Jehanne <aymerick@jehanne.org>
- * Copyright (C) 2008-2009 Michael Bell <michael.bell@opensync.org>
+ * Copyright (C) 2008-2011 Michael Bell <michael.bell@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -37,7 +37,11 @@
 
 #if defined( HAVE_EXPAT )
 
-#include "wbxml.h"
+#include "wbxml_tree_clb_xml.h"
+#include "wbxml_tree.h"
+#include "wbxml_log.h"
+#include "wbxml_charset.h"
+#include "wbxml_base64.h"
 
 /************************************
  *  Public Functions
@@ -49,6 +53,8 @@ void wbxml_tree_clb_xml_decl(void           *ctx,
                              int             standalone)
 {
     WBXMLTreeClbCtx *tree_ctx = (WBXMLTreeClbCtx *) ctx;
+
+    (void) standalone; /* avoid warning about unused parameter */
 
     if (tree_ctx->expat_utf16) {
         /** @todo Convert from UTF-16 to UTF-8 */
@@ -78,6 +84,9 @@ void wbxml_tree_clb_xml_doctype_decl(void           *ctx,
     WBXMLTreeClbCtx *tree_ctx = (WBXMLTreeClbCtx *) ctx;
     const WBXMLLangEntry *lang_table = NULL;
 
+    (void) doctypeName;         /* avoid warning about unused parameter */
+    (void) has_internal_subset; /* avoid warning about unused parameter */
+
     if (tree_ctx->expat_utf16) {
         /** @todo Convert from UTF-16 to UTF-8 */
     }
@@ -105,6 +114,8 @@ void wbxml_tree_clb_xml_start_element(void           *ctx,
 {
     WBXMLTreeClbCtx *tree_ctx = (WBXMLTreeClbCtx *) ctx;
     const WBXMLLangEntry *lang_table = NULL;
+
+    WBXML_DEBUG((WBXML_PARSER, "Expat element start callback ('%s')", localName));
 
     if (tree_ctx->expat_utf16) {
         /** @todo Convert from UTF-16 to UTF-8 */
@@ -181,9 +192,55 @@ void wbxml_tree_clb_xml_end_element(void           *ctx,
     WBXMLTreeClbCtx *tree_ctx = (WBXMLTreeClbCtx *) ctx;
 #if defined( WBXML_SUPPORT_SYNCML )
     WBXMLBuffer *embed_doc = NULL;
+    WBXMLBuffer *content = NULL;
     WBXMLTree *tree = NULL;
+    WBXMLTreeNode *node = NULL;
     WBXMLError ret = WBXML_OK;
 #endif /* WBXML_SUPPORT_SYNCML */
+
+    WBXML_DEBUG((WBXML_PARSER, "Expat element end callback ('%s')", localName));
+
+    /* If the node is flagged as binary node
+     * then the data is base64 encoded in the XML document
+     * and the data must be decoded in one step.
+     */
+
+    node = tree_ctx->current;
+    if (node && node->type == WBXML_TREE_ELEMENT_NODE &&
+        node->name->type == WBXML_VALUE_TOKEN &&
+        node->name->u.token->options & WBXML_TAG_OPTION_BINARY)
+    {
+        if (node->content == NULL)
+        {
+            WBXML_DEBUG((WBXML_PARSER, "    Binary tag: No content => no conversion!"));
+        } else {
+            WBXML_DEBUG((WBXML_PARSER, "    Binary tag: Convert base64 data"));
+            ret = wbxml_buffer_decode_base64(node->content);
+            if (ret != WBXML_OK)
+            {
+                WBXML_DEBUG((WBXML_PARSER, "    Binary tag: Base64 decoder failed!"));
+                tree_ctx->error = ret;
+            } else {
+                /* Add the buffer as a regular string node (since libwbxml doesn't
+                 * offer a way to specify an opaque data node). The WBXML
+                 * encoder is responsible for generating correct opaque data for
+                 * nodes like this.
+                 */
+                if (wbxml_tree_add_text(tree_ctx->tree,
+                                        tree_ctx->current,
+                                        (const WB_UTINY*)wbxml_buffer_get_cstr(node->content),
+                                        wbxml_buffer_len(node->content)) == NULL)
+                {
+                    WBXML_DEBUG((WBXML_PARSER, "    Binary tag: Cannot add base64 decoded node!"));
+                    tree_ctx->error = WBXML_ERROR_INTERNAL;
+                }
+            }
+            /* safe cleanup */
+            content = node->content;
+            node->content = NULL;
+            wbxml_buffer_destroy(content);
+        }
+    }
 
     if (tree_ctx->expat_utf16) {
         /** @todo Convert from UTF-16 to UTF-8 */
@@ -390,7 +447,10 @@ void wbxml_tree_clb_xml_characters(void           *ctx,
                                    const XML_Char *ch,
                                    int             len)
 {
+    WBXMLTreeNode *node;
     WBXMLTreeClbCtx *tree_ctx = (WBXMLTreeClbCtx *) ctx;
+
+    WBXML_DEBUG((WBXML_PARSER, "Expat text callback"));
 
     if (tree_ctx->expat_utf16) {
         /** @todo Convert from UTF-16 to UTF-8 */
@@ -518,6 +578,28 @@ void wbxml_tree_clb_xml_characters(void           *ctx,
         break;
     } /* switch */
 #endif /* WBXML_SUPPORT_SYNCML */
+
+    /* We expect that "byte array" or BLOB types are 
+     * encoded in Base 64 in the XML code, since they may contain binary data.
+     */
+
+    node = tree_ctx->current;
+    if (node && node->type == WBXML_TREE_ELEMENT_NODE &&
+        node->name->type == WBXML_VALUE_TOKEN &&
+        node->name->u.token->options & WBXML_TAG_OPTION_BINARY)
+    {
+        WBXML_DEBUG((WBXML_PARSER, "    Binary tag: Caching base64 encoded data for later conversion."));
+        if (node->content == NULL)
+        {
+            node->content = wbxml_buffer_create(ch, len, 1);
+            if (node->content == NULL)
+                tree_ctx->error = WBXML_ERROR_NOT_ENOUGH_MEMORY;
+        } else {
+            if (!wbxml_buffer_append_data(node->content, ch, len))
+                tree_ctx->error = WBXML_ERROR_NOT_ENOUGH_MEMORY;
+        }
+        return;
+    }
 
     /* Add Text Node */
     if (wbxml_tree_add_text(tree_ctx->tree,

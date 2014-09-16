@@ -1,6 +1,7 @@
 /*
  * libwbxml, the WBXML Library.
  * Copyright (C) 2002-2008 Aymerick Jehanne <aymerick@jehanne.org>
+ * Copyright (C) 2011 Michael Bell <michael.bell@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -35,6 +36,9 @@
 #ifndef WBXML_HANDLERS_H
 #define WBXML_HANDLERS_H
 
+#include "wbxml.h"
+#include "wbxml_tables.h"
+#include "wbxml_elt.h"
 
 #ifdef __cplusplus
 extern "C" {

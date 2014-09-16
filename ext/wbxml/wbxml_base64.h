@@ -1,6 +1,7 @@
 /*
  * libwbxml, the WBXML Library.
  * Copyright (C) 2002-2008 Aymerick Jehanne <aymerick@jehanne.org>
+ * Copyright (C) 2011 Michael Bell <michael.bell@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -37,6 +38,7 @@
 #ifndef WBXML_BASE64_H
 #define WBXML_BASE64_H
 
+#include "wbxml.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,12 +59,14 @@ WBXML_DECLARE(WB_UTINY *) wbxml_base64_encode(const WB_UTINY *buffer, WB_LONG le
 /**
  * @brief Decode a Base64 encoded buffer
  * @param buffer The buffer to decode
+ * @param len    Buffer length. If len is negative, assume buffer is terminated
+ *               by a non-Base64 character (such as NUL).
  * @param result Resulting decoded buffer
  * @return Length of resulting decoded buffer ('0' if no decoded)
  * @note Be aware that if return value is '0', then 'result' param will be NULL, else 'result' param
  *       has to be freed by caller.
  */
-WBXML_DECLARE(WB_LONG) wbxml_base64_decode(const WB_UTINY *buffer, WB_UTINY **result);
+WBXML_DECLARE(WB_LONG) wbxml_base64_decode(const WB_UTINY *buffer, WB_LONG len, WB_UTINY **result);
 
 /** @} */
 

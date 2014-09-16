@@ -1,6 +1,7 @@
 /*
  * libwbxml, the WBXML Library.
  * Copyright (C) 2002-2008 Aymerick Jehanne <aymerick@jehanne.org>
+ * Copyright (C) 2011 Michael Bell <michael.bell@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -35,6 +36,9 @@
 #ifndef WBXML_CHARSET_H
 #define WBXML_CHARSET_H
 
+#include "wbxml.h"
+#include "wbxml_buffers.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -42,26 +46,6 @@ extern "C" {
 /** @addtogroup wbxml_charset 
  *  @{ 
  */
-
-/** WBXML Charsets MIBEnum */
-typedef enum WBXMLCharsetMIBEnum_e {
-  WBXML_CHARSET_UNKNOWN         = 0,       /**< Unknown Charset */
-  WBXML_CHARSET_US_ASCII        = 3,       /**< US-ASCII */
-  WBXML_CHARSET_ISO_8859_1      = 4,       /**< ISO-8859-1 */
-  WBXML_CHARSET_ISO_8859_2      = 5,       /**< ISO-8859-2 */
-  WBXML_CHARSET_ISO_8859_3      = 6,       /**< ISO-8859-3 */
-  WBXML_CHARSET_ISO_8859_4      = 7,       /**< ISO-8859-4 */
-  WBXML_CHARSET_ISO_8859_5      = 8,       /**< ISO-8859-5 */
-  WBXML_CHARSET_ISO_8859_6      = 9,       /**< ISO-8859-6 */
-  WBXML_CHARSET_ISO_8859_7      = 10,      /**< ISO-8859-7 */
-  WBXML_CHARSET_ISO_8859_8      = 11,      /**< ISO-8859-8 */
-  WBXML_CHARSET_ISO_8859_9      = 12,      /**< ISO-8859-9 */
-  WBXML_CHARSET_SHIFT_JIS       = 17,      /**< Shift_JIS */
-  WBXML_CHARSET_UTF_8           = 106,     /**< UTF-8 */
-  WBXML_CHARSET_ISO_10646_UCS_2 = 1000,    /**< ISO-10646-UCS-2 */
-  WBXML_CHARSET_UTF_16          = 1015,    /**< UTF-16 */
-  WBXML_CHARSET_BIG5            = 2026     /**< Big5 */
-} WBXMLCharsetMIBEnum;
 
 
 /**

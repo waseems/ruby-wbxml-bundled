@@ -1,6 +1,7 @@
 /*
  * libwbxml, the WBXML Library.
  * Copyright (C) 2002-2008 Aymerick Jehanne <aymerick@jehanne.org>
+ * Copyright (C) 2011 Michael Bell <michael.bell@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -39,6 +40,8 @@
 
 #include <stdio.h>
 
+#include "wbxml.h"
+#include "wbxml_lists.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,7 +61,7 @@ typedef struct WBXMLBuffer_s WBXMLBuffer;
  * @brief Create a Buffer
  * @param data The initial data for buffer
  * @param len Size of data
- * @param malloc_block Size of malloc blocks (tune this parameter to avoid too many rallocations)
+ * @param malloc_block Size of the initial malloc block (tune this parameter to avoid too many reallocations)
  * @return The newly created Buffer, or NULL if not enought memory
  * @warning Do NOT use this function directly, use wbxml_buffer_create() macro instead
  */
@@ -308,6 +311,20 @@ WBXML_DECLARE(void) wbxml_buffer_hex_to_binary(WBXMLBuffer *buffer);
  * @return TRUE if converted, FALSE otherwise
  */
 WBXML_DECLARE(WB_BOOL) wbxml_buffer_binary_to_hex(WBXMLBuffer *buffer, WB_BOOL uppercase);
+
+/**
+ * @brief Convert base64 encoded data to binary data
+ * @param buffer The buffer to convert
+ * @return TRUE if converted, FALSE otherwise
+ */
+WBXML_DECLARE(WBXMLError) wbxml_buffer_decode_base64(WBXMLBuffer *buffer);
+
+/**
+ * @brief Convert binary data to base64 encoded data
+ * @param buffer The buffer to convert
+ * @return TRUE if converted, FALSE otherwise
+ */
+WBXML_DECLARE(WBXMLError) wbxml_buffer_encode_base64(WBXMLBuffer *buffer);
 
 /**
  * @brief Remove trailing Zeros from a dynamic Buffer

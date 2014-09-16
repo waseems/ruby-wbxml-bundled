@@ -1,6 +1,7 @@
 /*
  * libwbxml, the WBXML Library.
  * Copyright (C) 2002-2008 Aymerick Jehanne <aymerick@jehanne.org>
+ * Copyright (C) 2011 Michael Bell <michael.bell@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -32,7 +33,8 @@
  * @brief WBXML Error Codes Handling
  */
 
-#include "wbxml.h"
+#include "wbxml_errors.h"
+#include <stdio.h>
 
 
 /**
@@ -60,6 +62,7 @@ static const WBXMLErrorCodeItem error_table [] = {
     { WBXML_ERROR_NOT_IMPLEMENTED,              "Not Implemented" },
     { WBXML_ERROR_TAG_TABLE_UNDEFINED,          "Tag Table Undefined" },
     { WBXML_ERROR_B64_ENC,                      "Failed to encode Base64" },
+    { WBXML_ERROR_B64_DEC,                      "Failed to decode Base64" },
 #if defined( WBXML_SUPPORT_WV )
     { WBXML_ERROR_WV_DATETIME_FORMAT,           "Bad Wireless-Village Date and Time Format" },
 #endif /* WBXML_SUPPORT_WV */
